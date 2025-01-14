@@ -5,7 +5,7 @@ const port = 3000;
 const mongoose = require('mongoose');
 
 
-mongoose.connect('mongodb://127.0.0.1:27017/test')
+mongoose.connect('mongodb+srv://mudassarkareem:mudassarkareem@cluster0.ecqjvhf.mongodb.net/hrflow')
     .then(() => {
         console.log("Server connected with MongoDB");
     })
