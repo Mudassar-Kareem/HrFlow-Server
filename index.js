@@ -17,10 +17,15 @@ app.use(express.json());
 app.use('/images', express.static('public/images'));
 
 app.use(cors({
-    origin: ["http://localhost:5173","https://hr-flow-client.vercel.app"],
+    origin: "https://hr-flow-client.vercel.app", //"http://localhost:5173",
     methods: ["GET", "POST", "DELETE", "PUT"],
     credentials: true
 }));
+
+// test route
+app.get('/', (req, res) => {
+    res.send('Hello World');
+});
 
 const admin = require('./routes/adminRoutes');
 app.use('/api/v1', admin);
