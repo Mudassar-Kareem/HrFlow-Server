@@ -32,7 +32,7 @@ app.use(express.json());
 
 
 app.use(cors({
-    origin: [ "http://localhost:5173","https://hr-flow-client.vercel.app"], 
+    origin: "https://hr-flow-client.vercel.app", 
     methods: ["GET", "POST", "DELETE", "PUT"],
     credentials: true
 }));
