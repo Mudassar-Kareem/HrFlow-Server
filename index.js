@@ -33,11 +33,7 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 
 
-app.use(cors({
-    origin: "https://hr-flow-client.vercel.app", 
-    methods: ["GET", "POST", "DELETE", "PUT"],
-    credentials: true
-}));
+app.use(cors());
 
 // test route
 app.get('/', (req, res) => {
