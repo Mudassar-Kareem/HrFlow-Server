@@ -1,48 +1,14 @@
 const employeeModal = require('../modal/employee');
-const multer = require("multer");
-const path = require("path");
 const attendenceModel = require("../modal/Attendence");
-const mongoose = require('mongoose');
-// Multer disk storage configuration
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, './public/images'); // Destination folder for storing images
-    },
-    filename: function (req, file, cb) {
-        cb(null, file.fieldname + "_" + Date.now() + path.extname(file.originalname)); // Unique filename
-    }
-});
+const { sendToken } = require('../utilis/token');
+const cloudinary = require('cloudinary').v2;
 
-const upload = multer({ storage: storage });
-
-// create employee 
-exports.createEmployee = async (req, res) => {
-    try {
-        const { name, email, password, address, salary, gender, designation, dateOfJoined, phoneNo, department, deductionForLeave } = req.body;
-
-        // Check if req.file exists (uploaded file)
-        if (!req.file) {
-            return res.status(400).json({ error: "Image file is required." });
-        }
-
-        const newEmployee = new employeeModal({
-            name, email, image: req.file.filename, password, address, salary, gender, designation, dateOfJoined, phoneNo, department, deductionForLeave
-        });
-
-        await newEmployee.save();
-
-        return res.status(201).json({ message: "Employee created successfully" });
-    } catch (error) {
-        console.error("Error creating employee:", error);
-        return res.status(400).json({ error: "Failed to create employee" });
-    }
-};
 
 // admin login
 exports.adminLogin = async(req,res) =>{
     try {
         if(req.body.email === "mudassar@gmail.com" && req.body.password === "mudassar"){
-         res.status(200).json({ success: true, status : "success"})
+            return res.status(200).json({message: "Login Successfully"})
         }else{
             res.status(400).json({Error : "Invalid password or email"})
         }
@@ -51,6 +17,50 @@ exports.adminLogin = async(req,res) =>{
         res.status(400).json({Error : "Error in login"})
     }
 }
+
+// create employee 
+exports.createEmployee = async (req, res) => {
+    try {
+        const { name, email,image, password, address, salary, gender, designation, dateOfJoined, phoneNo, department, deductionForLeave } = req.body;
+        const myCloud = await cloudinary.uploader.upload(image,{
+            folder:"avatars"
+        })
+
+        const newEmployee = new employeeModal({
+            name, email, image:{url:myCloud.secure_url,public_id:myCloud.public_id}, password, address, salary, gender, designation, dateOfJoined, phoneNo, department, deductionForLeave
+        });
+
+        await newEmployee.save();
+        sendToken(newEmployee, 200, res, "Employee created successfully");
+
+        
+    } catch (error) {
+        console.error("Error creating employee:", error);
+        return res.status(400).json({ error: "Failed to create employee" });
+    }
+};
+
+//employee login 
+exports.employeeLogin = async(req,res)=>{
+    try {
+        const {email,password} = req.body;
+        const employee = await employeeModal.findOne({email,password});
+        if(!employee){
+            return res.status(200).json("Employee not found")
+        }
+        return res.status(200).json({message:"Login successfully",id: employee._id})
+    } catch (error) {
+        res.status(400).json("Login Failed")
+    }
+ }
+
+
+
+// logout
+exports.logout = async(req,res)=>{
+    return res.status(200).json({ Status: "Success" })
+ }
+
 // all Employee
 exports.getAllEmployee = async(req,res) =>{
     try {
@@ -144,42 +154,46 @@ exports.updateEmployee = async(req,res)=>{
 // get single employee
 exports.getSingleEmployee = async (req, res) => {
     try {
-      const employee = await employeeModal.findById(req.params.id);
+        const {id }= req.params;
+        
+      const employee = await employeeModal.findById(id);
+      
       return res.json({ employee });
+      
     } catch (error) {
+        
       return res.json({ Error: "error" });
     }
   };
-//employee login 
- exports.employeeLogin = async(req,res)=>{
-    try {
-        const {email,password} = req.body;
-        const employee = await employeeModal.findOne({email, password});
-        if(!employee){
-            return res.status(200).json("Employee not found")
-        }
-        return res.status(200).json({message:"Login Successfully",employeeId : employee._id })
-    } catch (error) {
-        res.status(400).json("Login Failed")
-    }
- }
+
 
  //Create Attendence
- exports.createAttendence = async(req,res)=>{
+ exports.createAttendence = async (req, res) => {
     try {
-        const {employeeId ,date,status} = req.body;
-        const newAttendence = new attendenceModel( {
-            employeeId: employeeId,
-            date: date,
-            status: status
-        })
-        await newAttendence.save();
-        return res.status(200).json("Attendence created successfully")
+      const { employeeId, date, status } = req.body;
+  
+      // Validate input fields
+      if (!employeeId || !date || !status) {
+        return res.status(400).json("All fields are required");
+      }
+  
+      // Create new attendance document
+      const newAttendence = new attendenceModel({
+        employeeId,
+        date,
+        status,
+      });
+  
+      // Save attendance to the database
+      await newAttendence.save();
+  
+      return res.status(200).json("Attendance created successfully");
     } catch (error) {
-        res.status(400).json("Attendence not created")
-        
+     
+      res.status(400).json("Attendance not created");
     }
- }
+  };
+  
  //for check all attendence
  exports.allAttendence = async(req,res)=>{
     try {
@@ -190,7 +204,7 @@ exports.getSingleEmployee = async (req, res) => {
     }
  }
  exports.getSingleAttendance = async (req, res) => {
-    const { id } = req.query;
+    const { id } = req.params;
     try {
       // Retrieve all attendance records for the specified employee ID
       const attendance = await attendenceModel.find({
@@ -203,6 +217,7 @@ exports.getSingleEmployee = async (req, res) => {
       }
   
       // Send the attendance records in a simple array format
+      
       return res.json({ attendance });
     } catch (err) {
       console.log(err);
@@ -211,24 +226,21 @@ exports.getSingleEmployee = async (req, res) => {
   };
   
 
- // logout
- exports.logout = async(req,res)=>{
-    return res.status(200).json({ Status: "Success" })
- }
+ 
 
  //employee login
- exports.employeeLogin = async(req,res)=>{
-    try {
-        const employee = await employeeModal.findOne({email: req.body.email});
-        if(!employee){
-            return res.status(400).json({ status: "error", error: "Invalid credentials" })
-        }
-        if(req.body.password.toString() !== employee.password){
-            return res.status(401).json({ status: "error", error: "Invalid credentials" });
-        }
-        return res.status(200).json({status: "success", id: employee._id})
-    } catch (error) {
-        return res.json({ Status: "Error", Error: "Error in running query" });
+//  exports.employeeLogin = async(req,res)=>{
+//     try {
+//         const employee = await employeeModal.findOne({email: req.body.email});
+//         if(!employee){
+//             return res.status(400).json({ status: "error", error: "Invalid credentials" })
+//         }
+//         if(req.body.password.toString() !== employee.password){
+//             return res.status(401).json({ status: "error", error: "Invalid credentials" });
+//         }
+//         return res.status(200).json({status: "success", id: employee._id})
+//     } catch (error) {
+//         return res.json({ Status: "Error", Error: "Error in running query" });
         
-    }
- }
+//     }
+//  }
