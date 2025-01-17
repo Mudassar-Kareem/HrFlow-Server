@@ -33,7 +33,15 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 
 
-app.use(cors());
+const corsOptions = {
+  origin: "https://hr-flow-client.vercel.app", // Replace with your frontend's URL
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true, // Allow credentials
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Enable preflight requests
+
 
 // test route
 app.get('/', (req, res) => {
