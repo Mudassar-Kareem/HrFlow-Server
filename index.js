@@ -28,7 +28,9 @@ mongoose.connect('mongodb+srv://mudassarkareem:mudassarkareem@cluster0.ecqjvhf.m
       });
 
 app.use(express.json());
-// app.use('/images', express.static('public/images'));
+app.use(express.json({ limit: '10mb' })); // Adjust size limit as needed
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
+
 
 
 app.use(cors({
